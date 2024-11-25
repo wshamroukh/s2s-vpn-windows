@@ -1,6 +1,17 @@
 rg=s2s-vpn-static-windows
 location=centralindia
 
+hub1_vnet_name=hub1
+hub1_vnet_address=10.1.0.0/16
+hub1_gw_subnet_address=10.1.0.0/24
+hub1_vm_subnet_name=vm
+hub1_vm_subnet_address=10.1.1.0/24
+
+spoke1_vnet_name=spoke1
+spoke1_vnet_address=10.11.0.0/16
+spoke1_vm_subnet_name=vm
+spoke1_vm_subnet_address=10.11.1.0/24
+
 site1_vnet_name=site1
 site1_vnet_address=10.1.0.0/16
 site1_gw_subnet_name=gw
@@ -21,6 +32,8 @@ psk=secret12345
 myip=$(curl -s4 https://ifconfig.co/)
 
 vm_size=Standard_B4als_v2
+lnx_vm_size=Standard_B2ats_v2
+vm_image=$(az vm image list -l $location1 -p Canonical -s 22_04-lts --all --query "[?offer=='0001-com-ubuntu-server-jammy'].urn" -o tsv | sort -u | tail -n 1) && echo $vm_image
 
 # Resource Groups
 echo -e "\e[1;36mCreating $rg Resource Group...\e[0m"
@@ -57,15 +70,14 @@ site2_gw_private_ip=$(az network nic show -g $rg -n $site2_vnet_name-gw --query 
 # site1 vm
 echo -e "\e[1;36mDeploying $site1_vnet_name VM...\e[0m"
 az network nic create -g $rg -n $site1_vnet_name -l $location --vnet-name $site1_vnet_name --subnet $site1_vm_subnet_name -o none
-az vm create -g $rg -n $site1_vnet_name -l $location --image Win2022Datacenter --nics $site1_vnet_name --os-disk-name $site1_vnet_name --size $vm_size --admin-username $admin_username --admin-password $admin_password --no-wait
+az vm create -g $rg -n $site1_vnet_name -l $location --image Win2022Datacenter --nics $site1_vnet_name --os-disk-name $site1_vnet_name --size $lnx_vm_size --admin-username $admin_username --admin-password $admin_password --no-wait
 # site1 vm details
 site1_vm_private_ip=$(az network nic show -g $rg -n $site1_vnet_name --query ipConfigurations[].privateIPAddress -o tsv)  && echo $site1_vnet_name private ip: $site1_vm_private_ip
 
 # site2 vm
 echo -e "\e[1;36mDeploying $site2_vnet_name VM...\e[0m"
-az network public-ip create -g $rg -n $site2_vnet_name -l $location --allocation-method Static --sku Basic -o none
 az network nic create -g $rg -n $site2_vnet_name -l $location --vnet-name $site2_vnet_name --subnet $site2_vm_subnet_name -o none
-az vm create -g $rg -n $site2_vnet_name -l $location --image Win2022Datacenter --nics $site2_vnet_name --os-disk-name $site2_vnet_name --size $vm_size --admin-username $admin_username --admin-password $admin_password --no-wait
+az vm create -g $rg -n $site2_vnet_name -l $location --image $vm_image --nics $site2_vnet_name --os-disk-name $site2_vnet_name --size $lnx_vm_size --admin-username $admin_username --admin-password $admin_password --no-wait
 # site2 vm details
 site2_vm_private_ip=$(az network nic show -g $rg -n $site2_vnet_name --query ipConfigurations[].privateIPAddress -o tsv)  && echo $site2_vnet_name private ip: $site2_vm_private_ip
 
@@ -116,10 +128,8 @@ EOF
 echo -e "\e[1;36mEnabling ICMP on Windows Firewall for both $site1_vnet_name and $site2_vnet_name VMs...\e[0m"
 # Run wf script on site1-gw
 az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_wf_file --verbose
-az vm run-command invoke -g $rg -n $site1_vnet_name --command-id RunPowerShellScript --scripts @$site_wf_file --verbose
 # Run wf script on site2-gw
 az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_wf_file --verbose
-az vm run-command invoke -g $rg -n $site2_vnet_name --command-id RunPowerShellScript --scripts @$site_wf_file --verbose
 
 ### RRAS Role script
 site_rras_file=~/site_rras.ps1

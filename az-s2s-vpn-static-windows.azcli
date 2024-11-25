@@ -277,6 +277,9 @@ EOF
 # Run ping to site1-gw script on site1-gw
 az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts @$site1_ping_file --verbose
 
+# Commands to try on each site gateway
+# Get-VpnS2SInterface
+
 # clean up script files
 rm ~/site*
 

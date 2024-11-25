@@ -195,16 +195,12 @@ echo -e "\e[1;36mEnabling BGP on $site2_vnet_name-gw...\e[0m"
 # Run bgp script on site2-gw
 az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts @$site2_vgp_file --verbose
 
-# script to check connectivity
-site2_ping_file=~/site2_ping.ps1
-cat <<EOF > $site2_ping_file
-# Check connectivity to site1 gw
-ping $site1_gw_private_ip
-ping $site1_vm_private_ip
-EOF
-
-# Run ping to site1-gw script on site2-gw
-az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts @$site2_ping_file --verbose
+# Commands to try on each site gateway
+# Get-VpnS2SInterface
+# Get-BgpPeer
+# Get-BgpCustomRoute
+# Get-BgpRouteInformation
+# Get-BgpStatistics
 
 # clean up script files
 rm ~/site*

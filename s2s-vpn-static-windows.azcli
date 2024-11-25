@@ -113,7 +113,7 @@ Get-NetFirewallRule -DisplayName "Virtual Machine Monitoring (Echo Request - ICM
 Get-NetFirewallRule -DisplayName "Virtual Machine Monitoring (Echo Request - ICMPv6-In)" | Enable-NetFirewallRule
 EOF
 
-echo -e "\e[1;36mEnabling ICMP on Windows Firewall for both $site1_vnet_name-gw and $site2_vnet_name-gw...\e[0m"
+echo -e "\e[1;36mEnabling ICMP on Windows Firewall for both $site1_vnet_name and $site2_vnet_name VMs...\e[0m"
 # Run wf script on site1-gw
 az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_wf_file --verbose
 az vm run-command invoke -g $rg -n $site1_vnet_name --command-id RunPowerShellScript --scripts @$site_wf_file --verbose

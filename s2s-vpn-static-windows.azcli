@@ -141,7 +141,7 @@ az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShel
 site1_vpn_file=~/site1_vpn.ps1
 cat <<EOF > $site1_vpn_file
 # Add and configure S2S VPN interface
-Add-VpnS2SInterface -Protocol IKEv2 -AuthenticationMethod PSKOnly -NumberOfTries 3 -ResponderAuthenticationMethod PSKOnly -Name $site2_vnet_name-gw -Destination $site2_gw_pubip -IPv4Subnet @("$site2_vnet_address:10") -SharedSecret $psk -Persistent \$true
+Add-VpnS2SInterface -Protocol IKEv2 -AuthenticationMethod PSKOnly -NumberOfTries 3 -ResponderAuthenticationMethod PSKOnly -Name $site2_vnet_name-gw -Destination $site2_gw_pubip -IPv4Subnet @("$site2_vnet_address:10") -SharedSecret $psk
 Set-VpnServerIPsecConfiguration -EncryptionType MaximumEncryption
 Set-VpnS2Sinterface -Name $site2_vnet_name-gw -InitiateConfigPayload \$false -Force
 # enable forwaring on nic
@@ -156,7 +156,7 @@ az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShel
 site2_vpn_file=~/site2_vpn.ps1
 cat <<EOF > $site2_vpn_file
 # Add and configure S2S VPN interface
-Add-VpnS2SInterface -Protocol IKEv2 -AuthenticationMethod PSKOnly -NumberOfTries 3 -ResponderAuthenticationMethod PSKOnly -Name $site1_vnet_name-gw -Destination $site1_gw_pubip -IPv4Subnet @("$site1_vnet_address:10") -SharedSecret $psk -Persistent \$true
+Add-VpnS2SInterface -Protocol IKEv2 -AuthenticationMethod PSKOnly -NumberOfTries 3 -ResponderAuthenticationMethod PSKOnly -Name $site1_vnet_name-gw -Destination $site1_gw_pubip -IPv4Subnet @("$site1_vnet_address:10") -SharedSecret $psk
 Set-VpnServerIPsecConfiguration -EncryptionType MaximumEncryption
 Set-VpnS2Sinterface -Name $site1_vnet_name-gw -InitiateConfigPayload \$false -Force
 # enable forwaring on nic

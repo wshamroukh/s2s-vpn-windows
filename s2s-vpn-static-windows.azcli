@@ -1,17 +1,6 @@
 rg=s2s-vpn-static-windows
 location=centralindia
 
-hub1_vnet_name=hub1
-hub1_vnet_address=10.1.0.0/16
-hub1_gw_subnet_address=10.1.0.0/24
-hub1_vm_subnet_name=vm
-hub1_vm_subnet_address=10.1.1.0/24
-
-spoke1_vnet_name=spoke1
-spoke1_vnet_address=10.11.0.0/16
-spoke1_vm_subnet_name=vm
-spoke1_vm_subnet_address=10.11.1.0/24
-
 site1_vnet_name=site1
 site1_vnet_address=10.1.0.0/16
 site1_gw_subnet_name=gw

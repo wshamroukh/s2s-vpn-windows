@@ -1,0 +1,214 @@
+rg=s2s-vpn-bgp-windows
+location=centralindia
+
+site1_vnet_name=site1
+site1_vnet_address=10.1.0.0/16
+site1_gw_subnet_name=gw
+site1_gw_asn=65001
+site1_gw_subnet_address=10.1.0.0/24
+site1_vm_subnet_name=vm
+site1_vm_subnet_address=10.1.1.0/24
+
+site2_vnet_name=site2
+site2_vnet_address=10.2.0.0/16
+site2_gw_subnet_name=gw
+site2_gw_asn=65002
+site2_gw_subnet_address=10.2.0.0/24
+site2_vm_subnet_name=vm
+site2_vm_subnet_address=10.2.1.0/24
+
+admin_username=$(whoami)
+admin_password="Test#123#123"
+psk=secret12345
+myip=$(curl -s4 https://ifconfig.co/)
+
+vm_size=Standard_B4als_v2
+
+# Resource Groups
+echo -e "\e[1;36mCreating $rg Resource Group...\e[0m"
+az group create -n $rg -l $location -o none
+
+# site1 vnet
+echo -e "\e[1;36mCreating $site1_vnet_name VNet...\e[0m"
+az network vnet create -g $rg -n $site1_vnet_name -l $location --address-prefixes $site1_vnet_address --subnet-name $site1_vm_subnet_name --subnet-prefixes $site1_vm_subnet_address -o none
+az network vnet subnet create -g $rg -n $site1_gw_subnet_name --address-prefixes $site1_gw_subnet_address --vnet-name $site1_vnet_name -o none
+
+# site2 vnet
+echo -e "\e[1;36mCreating $site2_vnet_name VNet...\e[0m"
+az network vnet create -g $rg -n $site2_vnet_name -l $location --address-prefixes $site2_vnet_address --subnet-name $site2_vm_subnet_name --subnet-prefixes $site2_vm_subnet_address -o none
+az network vnet subnet create -g $rg -n $site2_gw_subnet_name --address-prefixes $site2_gw_subnet_address --vnet-name $site2_vnet_name -o none
+
+# site1 gw
+echo -e "\e[1;36mDeploying $site1_vnet_name-gw VM...\e[0m"
+az network public-ip create -g $rg -n $site1_vnet_name-gw -l $location --allocation-method Static --sku Basic -o none
+az network nic create -g $rg -n $site1_vnet_name-gw -l $location --vnet-name $site1_vnet_name --subnet $site1_gw_subnet_name --ip-forwarding true --public-ip-address $site1_vnet_name-gw -o none
+az vm create -g $rg -n $site1_vnet_name-gw -l $location --image Win2022Datacenter --nics $site1_vnet_name-gw --os-disk-name $site1_vnet_name-gw --size $vm_size --admin-username $admin_username --admin-password $admin_password --no-wait
+# site1 gw details
+site1_gw_pubip=$(az network public-ip show -g $rg -n $site1_vnet_name-gw --query ipAddress -o tsv) && echo $site1_vnet_name-gw public ip: $site1_gw_pubip
+site1_gw_private_ip=$(az network nic show -g $rg -n $site1_vnet_name-gw --query ipConfigurations[].privateIPAddress -o tsv)  && echo $site1_vnet_name-gw private ip: $site1_gw_private_ip
+
+# site2 gw
+echo -e "\e[1;36mDeploying $site2_vnet_name-gw VM...\e[0m"
+az network public-ip create -g $rg -n $site2_vnet_name-gw -l $location --allocation-method Static --sku Basic -o none
+az network nic create -g $rg -n $site2_vnet_name-gw -l $location --vnet-name $site2_vnet_name --subnet $site2_gw_subnet_name --ip-forwarding true --public-ip-address $site2_vnet_name-gw -o none
+az vm create -g $rg -n $site2_vnet_name-gw -l $location --image Win2022Datacenter --nics $site2_vnet_name-gw --os-disk-name $site2_vnet_name-gw --size $vm_size --admin-username $admin_username --admin-password $admin_password --no-wait
+# site2 gw details
+site2_gw_pubip=$(az network public-ip show -g $rg -n $site2_vnet_name-gw --query ipAddress -o tsv) && echo $site2_vnet_name-gw public ip: $site2_gw_pubip
+site2_gw_private_ip=$(az network nic show -g $rg -n $site2_vnet_name-gw --query ipConfigurations[].privateIPAddress -o tsv)  && echo $site2_vnet_name-gw private ip: $site2_gw_private_ip
+
+# site1 vm
+echo -e "\e[1;36mDeploying $site1_vnet_name VM...\e[0m"
+az network nic create -g $rg -n $site1_vnet_name -l $location --vnet-name $site1_vnet_name --subnet $site1_vm_subnet_name -o none
+az vm create -g $rg -n $site1_vnet_name -l $location --image Win2022Datacenter --nics $site1_vnet_name --os-disk-name $site1_vnet_name --size $vm_size --admin-username $admin_username --admin-password $admin_password --no-wait
+# site1 vm details
+site1_vm_private_ip=$(az network nic show -g $rg -n $site1_vnet_name --query ipConfigurations[].privateIPAddress -o tsv)  && echo $site1_vnet_name private ip: $site1_vm_private_ip
+
+# site2 vm
+echo -e "\e[1;36mDeploying $site2_vnet_name VM...\e[0m"
+az network public-ip create -g $rg -n $site2_vnet_name -l $location --allocation-method Static --sku Basic -o none
+az network nic create -g $rg -n $site2_vnet_name -l $location --vnet-name $site2_vnet_name --subnet $site2_vm_subnet_name -o none
+az vm create -g $rg -n $site2_vnet_name -l $location --image Win2022Datacenter --nics $site2_vnet_name --os-disk-name $site2_vnet_name --size $vm_size --admin-username $admin_username --admin-password $admin_password --no-wait
+# site2 vm details
+site2_vm_private_ip=$(az network nic show -g $rg -n $site2_vnet_name --query ipConfigurations[].privateIPAddress -o tsv)  && echo $site2_vnet_name private ip: $site2_vm_private_ip
+
+# site1 route table
+echo -e "\e[1;36mDeploying $site1_vnet_name route table and attaching it to $site1_vm_subnet_name subnet...\e[0m"
+az network route-table create -n $site1_vnet_name -g $rg -l $location -o none
+az network route-table route create --address-prefix $site2_vnet_address -n to-$site2_vnet_name -g $rg --next-hop-type VirtualAppliance --route-table-name $site1_vnet_name --next-hop-ip-address $site1_gw_private_ip -o none
+az network vnet subnet update --vnet-name $site1_vnet_name -n $site1_vm_subnet_name --route-table $site1_vnet_name -g $rg -o none
+
+# site2 route table
+echo -e "\e[1;36mDeploying $site2_vnet_name route table and attaching it to $site2_vm_subnet_name subnet...\e[0m"
+az network route-table create -n $site2_vnet_name -g $rg -l $location -o none
+az network route-table route create --address-prefix $site1_vnet_address -n to-$site1_vnet_name -g $rg --next-hop-type VirtualAppliance --route-table-name $site2_vnet_name --next-hop-ip-address $site2_gw_private_ip -o none
+az network vnet subnet update --vnet-name $site2_vnet_name -n $site2_vm_subnet_name --route-table $site2_vnet_name -g $rg -o none
+
+# site1 gw nsg
+echo -e "\e[1;36mCreating $site1_vnet_name-gw NSG...\e[0m"
+az network nsg create -g $rg -n $site1_vnet_name-gw -l $location -o none
+az network nsg rule create -g $rg -n AllowRDPin --nsg-name $site1_vnet_name-gw --priority 1000 --access Allow --description AllowRDP --protocol Tcp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges 3389 --source-address-prefixes $myip --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowIKE --nsg-name $site1_vnet_name-gw --priority 1010 --access Allow --description AllowIKE --protocol Udp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges 4500 --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowIPSec --nsg-name $site1_vnet_name-gw --priority 1020 --access Allow --description AllowIPSec --protocol Udp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges 500 --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowICMPin --nsg-name $site1_vnet_name-gw --priority 1030 --access Allow --description AllowICMP --protocol Icmp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges '*' --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowRDPout --nsg-name $site1_vnet_name-gw --priority 1000 --access Allow --description AllowRDP --protocol Tcp --direction Outbound --destination-address-prefixes '*' --destination-port-ranges 3389 --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowICMPout --nsg-name $site1_vnet_name-gw --priority 1010 --access Allow --description AllowICMP --protocol Icmp --direction Outbound --destination-address-prefixes '*' --destination-port-ranges '*' --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network vnet subnet update -g $rg -n $site1_gw_subnet_name --vnet-name $site1_vnet_name --nsg $site1_vnet_name-gw -o none
+
+# site2 gw nsg
+echo -e "\e[1;36mCreating $site2_vnet_name-gw NSG...\e[0m"
+az network nsg create -g $rg -n $site2_vnet_name-gw -l $location -o none
+az network nsg rule create -g $rg -n AllowRDPin --nsg-name $site2_vnet_name-gw --priority 1000 --access Allow --description AllowRDP --protocol Tcp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges 3389 --source-address-prefixes $myip --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowIKE --nsg-name $site2_vnet_name-gw --priority 1010 --access Allow --description AllowIKE --protocol Udp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges 4500 --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowIPSec --nsg-name $site2_vnet_name-gw --priority 1020 --access Allow --description AllowIPSec --protocol Udp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges 500 --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowICMPin --nsg-name $site2_vnet_name-gw --priority 1030 --access Allow --description AllowICMP --protocol Icmp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges '*' --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowRDPout --nsg-name $site2_vnet_name-gw --priority 1000 --access Allow --description AllowRDP --protocol Tcp --direction Outbound --destination-address-prefixes '*' --destination-port-ranges 3389 --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowICMPout --nsg-name $site2_vnet_name-gw --priority 1010 --access Allow --description AllowICMP --protocol Icmp --direction Outbound --destination-address-prefixes '*' --destination-port-ranges '*' --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network vnet subnet update -g $rg -n $site2_gw_subnet_name --vnet-name $site2_vnet_name --nsg $site2_vnet_name-gw -o none
+
+### wf script
+site_wf_file=~/site_wf.ps1
+cat <<EOF > $site_wf_file
+# Allow ICMP
+Get-NetFirewallRule -DisplayName "File and Printer Sharing (Echo Request - ICMPv4-In)" | Enable-NetFirewallRule
+Get-NetFirewallRule -DisplayName "File and Printer Sharing (Echo Request - ICMPv6-In)" | Enable-NetFirewallRule
+Get-NetFirewallRule -DisplayName "Virtual Machine Monitoring (Echo Request - ICMPv4-In)" | Enable-NetFirewallRule
+Get-NetFirewallRule -DisplayName "Virtual Machine Monitoring (Echo Request - ICMPv6-In)" | Enable-NetFirewallRule
+EOF
+
+echo -e "\e[1;36mEnabling ICMP on Windows Firewall for both $site1_vnet_name and $site2_vnet_name VMs...\e[0m"
+# Run wf script on site1-gw
+az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_wf_file --verbose
+az vm run-command invoke -g $rg -n $site1_vnet_name --command-id RunPowerShellScript --scripts @$site_wf_file --verbose
+# Run wf script on site2-gw
+az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_wf_file --verbose
+az vm run-command invoke -g $rg -n $site2_vnet_name --command-id RunPowerShellScript --scripts @$site_wf_file --verbose
+
+### RRAS Role script
+site_rras_file=~/site_rras.ps1
+cat <<EOF > $site_rras_file
+# Add RRAS Role
+Install-WindowsFeature -Name RemoteAccess, RSAT-RemoteAccess-PowerShell, DirectAccess-VPN, Routing -IncludeManagementTools -Verbose
+Install-RemoteAccess -VpnType VpnS2S
+EOF
+
+echo -e "\e[1;36mInstalling RemoteAccess Role for $site1_vnet_name-gw...\e[0m"
+# Run rras script on site1-gw
+az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_rras_file --verbose
+echo -e "\e[1;36mInstalling RemoteAccess Role for $site2_vnet_name-gw...\e[0m"
+# Run rras script on site2-gw
+az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_rras_file --verbose
+
+# Run VPN interface script on site1-gw
+site1_vpn_file=~/site1_vpn.ps1
+cat <<EOF > $site1_vpn_file
+# Add and configure S2S VPN interface
+Add-VpnS2SInterface -Protocol IKEv2 -AuthenticationMethod PSKOnly -NumberOfTries 3 -ResponderAuthenticationMethod PSKOnly -Name $site2_vnet_name-gw -Destination $site2_gw_pubip -IPv4Subnet @("$site2_gw_private_ip/32:10") -SharedSecret $psk
+Set-VpnServerIPsecConfiguration -EncryptionType MaximumEncryption
+Set-VpnS2Sinterface -Name $site2_vnet_name-gw -InitiateConfigPayload \$false -Force
+# enable forwaring on nic
+Get-NetAdapter | Set-NetIPInterface -Forwarding Enabled
+EOF
+
+echo -e "\e[1;36mAdding VPN interface on $site1_vnet_name-gw...\e[0m"
+# Run vpn interface script on site1-gw
+az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts @$site1_vpn_file --verbose
+
+# Run VPN interface script on site2-gw
+site2_vpn_file=~/site2_vpn.ps1
+cat <<EOF > $site2_vpn_file
+# Add and configure S2S VPN interface
+Add-VpnS2SInterface -Protocol IKEv2 -AuthenticationMethod PSKOnly -NumberOfTries 3 -ResponderAuthenticationMethod PSKOnly -Name $site1_vnet_name-gw -Destination $site1_gw_pubip -IPv4Subnet @("$site1_gw_private_ip/32:10") -SharedSecret $psk
+Set-VpnServerIPsecConfiguration -EncryptionType MaximumEncryption
+Set-VpnS2Sinterface -Name $site1_vnet_name-gw -InitiateConfigPayload \$false -Force
+# enable forwaring on nic
+Get-NetAdapter | Set-NetIPInterface -Forwarding Enabled
+# Establish VPN
+Connect-VpnS2SInterface -Name $site1_vnet_name-gw
+# Check VPN Status
+Get-VpnS2SInterface -Name $site1_vnet_name-gw
+EOF
+
+echo -e "\e[1;36mAdding VPN interface on $site2_vnet_name-gw and connecting S2S VPN to $site1_vnet_name-gw...\e[0m"
+# Run vpn interface script on site2-gw
+az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts @$site2_vpn_file --verbose
+
+# site1 bgp script
+site1_vgp_file=~/site1_vgp.ps1
+cat <<EOF > $site1_vgp_file
+Add-BgpRouter -BgpIdentifier $site1_gw_private_ip -LocalASN $site1_gw_asn
+Add-BgpPeer -Name site2-gw -LocalIPAddress $site1_gw_private_ip -PeerIPAddress $site2_gw_private_ip -LocalASN $site1_gw_asn -PeerASN $site2_gw_asn -OperationMode Mixed -PeeringMode Automatic
+Add-BgpCustomRoute -Network $site1_vnet_address -PassThru
+EOF
+
+echo -e "\e[1;36mEnabling BGP on $site1_vnet_name-gw...\e[0m"
+# Run bgp script on site1-gw
+az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts @$site1_vgp_file --verbose
+
+# site2 bgp script
+site2_vgp_file=~/site2_vgp.ps1
+cat <<EOF > $site2_vgp_file
+Add-BgpRouter -BgpIdentifier $site2_gw_private_ip -LocalASN $site2_gw_asn
+Add-BgpPeer -Name site2-gw -LocalIPAddress $site2_gw_private_ip -PeerIPAddress $site1_gw_private_ip -LocalASN $site2_gw_asn -PeerASN $site1_gw_asn -OperationMode Mixed -PeeringMode Automatic
+Add-BgpCustomRoute -Network $site2_vnet_address -PassThru
+EOF
+
+echo -e "\e[1;36mEnabling BGP on $site2_vnet_name-gw...\e[0m"
+# Run bgp script on site2-gw
+az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts @$site2_vgp_file --verbose
+
+# script to check connectivity
+site2_ping_file=~/site2_ping.ps1
+cat <<EOF > $site2_ping_file
+# Check connectivity to site1 gw
+ping $site1_gw_private_ip
+ping $site1_vm_private_ip
+EOF
+
+# Run ping to site1-gw script on site2-gw
+az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts @$site2_ping_file --verbose
+
+# clean up script files
+rm ~/site*
+
+#cleanup
+# az group delete -g $rg -y --no-wait

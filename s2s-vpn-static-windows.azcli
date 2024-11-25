@@ -132,7 +132,6 @@ EOF
 echo -e "\e[1;36mInstalling RemoteAccess Role for $site1_vnet_name-gw...\e[0m"
 # Run rras script on site1-gw
 az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_rras_file --verbose
-
 echo -e "\e[1;36mInstalling RemoteAccess Role for $site2_vnet_name-gw...\e[0m"
 # Run rras script on site2-gw
 az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_rras_file --verbose

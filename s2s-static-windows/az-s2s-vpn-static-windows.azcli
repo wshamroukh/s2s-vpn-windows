@@ -33,7 +33,6 @@ myip=$(curl -s4 https://ifconfig.co/)
 
 win_vm_size=Standard_B4als_v2
 lnx_vm_size=Standard_B2ats_v2
-lnx_vm_image=$(az vm image list -l $location -p Canonical -s 22_04-lts --all --query "[?offer=='0001-com-ubuntu-server-jammy'].urn" -o tsv | sort -u | tail -n 1) && echo $lnx_vm_image
 
 function wait_until_finished {
      wait_interval=15
@@ -115,25 +114,25 @@ az network local-gateway create -g $rg -n $site2_vnet_name-gw -l $location --gat
 # site1 vm
 echo -e "\e[1;36mDeploying $site1_vnet_name VM...\e[0m"
 az network nic create -g $rg -n $site1_vnet_name -l $location --vnet-name $site1_vnet_name --subnet $site1_vm_subnet_name -o none
-az vm create -g $rg -n $site1_vnet_name -l $location --image $lnx_vm_image --nics $site1_vnet_name --os-disk-name $site1_vnet_name --size $lnx_vm_size --admin-username $admin_username --admin-password $admin_password --no-wait
+az vm create -g $rg -n $site1_vnet_name -l $location --image Ubuntu2404 --nics $site1_vnet_name --os-disk-name $site1_vnet_name --size $lnx_vm_size --admin-username $admin_username --admin-password $admin_password --no-wait
 site1_vm_private_ip=$(az network nic show -g $rg -n $site1_vnet_name --query ipConfigurations[].privateIPAddress -o tsv) && echo $site1_vnet_name private ip: $site1_vm_private_ip
 
 # site2 vm
 echo -e "\e[1;36mDeploying $site2_vnet_name VM...\e[0m"
 az network nic create -g $rg -n $site2_vnet_name -l $location --vnet-name $site2_vnet_name --subnet $site2_vm_subnet_name -o none
-az vm create -g $rg -n $site2_vnet_name -l $location --image $lnx_vm_image --nics $site2_vnet_name --os-disk-name $site2_vnet_name --size $lnx_vm_size --admin-username $admin_username --admin-password $admin_password --no-wait
+az vm create -g $rg -n $site2_vnet_name -l $location --image Ubuntu2404 --nics $site2_vnet_name --os-disk-name $site2_vnet_name --size $lnx_vm_size --admin-username $admin_username --admin-password $admin_password --no-wait
 site2_vm_private_ip=$(az network nic show -g $rg -n $site2_vnet_name --query ipConfigurations[].privateIPAddress -o tsv)  && echo $site2_vnet_name private ip: $site2_vm_private_ip
 
 # hub1 vm
 echo -e "\e[1;36mDeploying $hub1_vnet_name VM...\e[0m"
 az network nic create -g $rg -n $hub1_vnet_name -l $location --vnet-name $hub1_vnet_name --subnet $hub1_vm_subnet_name -o none
-az vm create -g $rg -n $hub1_vnet_name -l $location --image $lnx_vm_image --nics $hub1_vnet_name --os-disk-name $hub1_vnet_name --size $lnx_vm_size --admin-username $admin_username --admin-password $admin_password --no-wait
+az vm create -g $rg -n $hub1_vnet_name -l $location --image Ubuntu2404 --nics $hub1_vnet_name --os-disk-name $hub1_vnet_name --size $lnx_vm_size --admin-username $admin_username --admin-password $admin_password --no-wait
 hub1_vm_ip=$(az network nic show -g $rg -n $hub1_vnet_name --query ipConfigurations[0].privateIPAddress -o tsv) && echo $hub1_vnet_name private ip: $hub1_vm_ip
 
 # spoke1 vm
 echo -e "\e[1;36mDeploying $spoke1_vnet_name VM...\e[0m"
 az network nic create -g $rg -n $spoke1_vnet_name -l $location --vnet-name $spoke1_vnet_name --subnet $spoke1_vm_subnet_name -o none
-az vm create -g $rg -n $spoke1_vnet_name -l $location --image $lnx_vm_image --nics $spoke1_vnet_name --os-disk-name $spoke1_vnet_name --size $lnx_vm_size --admin-username $admin_username --admin-password $admin_password --no-wait
+az vm create -g $rg -n $spoke1_vnet_name -l $location --image Ubuntu2404 --nics $spoke1_vnet_name --os-disk-name $spoke1_vnet_name --size $lnx_vm_size --admin-username $admin_username --admin-password $admin_password --no-wait
 spoke1_vm_ip=$(az network nic show -g $rg -n $spoke1_vnet_name --query ipConfigurations[0].privateIPAddress -o tsv) && echo $spoke1_vnet_name private ip: $spoke1_vm_ip
 
 # site1 route table
@@ -211,9 +210,11 @@ EOF
 
 echo -e "\e[1;36mEnabling ICMP on Windows Firewall for both $site1_vnet_name and $site2_vnet_name VMs...\e[0m"
 # Run wf script on site1-gw
-az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_wf_file --verbose
+az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_wf_file --query "value[0].message" -o tsv
 # Run wf script on site2-gw
-az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_wf_file --verbose
+az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_wf_file --query "value[0].message" -o tsv
+
+rm $site_wf_file
 
 ### RRAS Role script
 site_rras_file=~/site_rras.ps1
@@ -225,10 +226,11 @@ EOF
 
 echo -e "\e[1;36mInstalling RemoteAccess Role for $site1_vnet_name-gw...\e[0m"
 # Run rras script on site1-gw
-az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_rras_file --verbose
-echo -e "\e[1;36mInstalling RemoteAccess Role for $site2_vnet_name-gw...\e[0m"
+az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_rras_file --query "value[0].message" -o tsv
 # Run rras script on site2-gw
-az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_rras_file --verbose
+az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_rras_file --query "value[0].message" -o tsv
+
+rm  $site_rras_file
 
 # Run VPN interface script on site1-gw
 site1_vpn_file=~/site1_vpn.ps1
@@ -242,11 +244,13 @@ Get-NetAdapter | Set-NetIPInterface -Forwarding Enabled
 # Establish VPN
 Connect-VpnS2SInterface -Name $hub1_vnet_name-gw
 # Check VPN Status
-Get-VpnS2SInterface -Name $hub1_vnet_name-gw
+Get-VpnS2SInterface -Name $hub1_vnet_name-gw |fl
 EOF
 
 # Run VPN interface script on site1-gw
 az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts @$site1_vpn_file --verbose
+
+rm $site1_vpn_file
 
 # VPN interface script on site2-gw
 site2_vpn_file=~/site2_vpn.ps1
@@ -260,28 +264,30 @@ Get-NetAdapter | Set-NetIPInterface -Forwarding Enabled
 # Establish VPN
 Connect-VpnS2SInterface -Name $hub1_vnet_name-gw
 # Check VPN Status
-Get-VpnS2SInterface -Name $hub1_vnet_name-gw
+Get-VpnS2SInterface -Name $hub1_vnet_name-gw |fl
 EOF
 
 # Run VPN interface script on site2-gw
-az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts @$site2_vpn_file --verbose
+az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts @$site2_vpn_file --query "value[0].message" -o tsv
 
-# script to check connectivity
-site1_ping_file=~/site1_ping.ps1
-cat <<EOF > $site1_ping_file
-# Check connectivity to hub1 and spoke1
-ping $hub1_vm_ip
-ping $spoke1_vm_ip
-EOF
+rm $site2_vpn_file
 
-# Run ping to site1-gw script on site1-gw
-az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts @$site1_ping_file --verbose
+#############
+# Diagnosis #
+#############
+echo -e "\e[1;36mChecking s2s VPN status on $site1_vnet_name-gw...\e[0m"
+az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts "Get-VpnS2SInterface |fl" --query "value[0].message" -o tsv
 
-# Commands to try on each site gateway
-# Get-VpnS2SInterface
+echo -e "\e[1;36mChecking s2s VPN status on $site2_vnet_name-gw...\e[0m"
+az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts "Get-VpnS2SInterface |fl" --query "value[0].message" -o tsv
 
-# clean up script files
-rm ~/site*
+# Run ping from site1 to to site2 
+echo -e "\e[1;36mChecking connectivity from $site1_vnet_name to $site2_vnet_name...\e[0m"
+az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts "ping $site2_gw_private_ip; ping $site2_vm_private_ip; ping $hub1_vm_ip; ping $spoke1_vm_ip" --query "value[0].message" -o tsv
+
+# Run ping from site2 to site1
+echo -e "\e[1;36mChecking connectivity from $site2_vnet_name to $site1_vnet_name...\e[0m"
+az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts "ping $site1_gw_private_ip; ping $site1_vm_private_ip; ping $hub1_vm_ip; ping $spoke1_vm_ip" --query "value[0].message" -o tsv
 
 #cleanup
 # az group delete -g $rg -y --no-wait

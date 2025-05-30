@@ -92,6 +92,7 @@ az network nsg rule create -g $rg -n AllowIPSec --nsg-name $site1_vnet_name-gw -
 az network nsg rule create -g $rg -n AllowICMPin --nsg-name $site1_vnet_name-gw --priority 1030 --access Allow --description AllowICMP --protocol Icmp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges '*' --source-address-prefixes '*' --source-port-ranges '*' -o none
 az network nsg rule create -g $rg -n AllowRDPout --nsg-name $site1_vnet_name-gw --priority 1000 --access Allow --description AllowRDP --protocol Tcp --direction Outbound --destination-address-prefixes '*' --destination-port-ranges 3389 --source-address-prefixes '*' --source-port-ranges '*' -o none
 az network nsg rule create -g $rg -n AllowICMPout --nsg-name $site1_vnet_name-gw --priority 1010 --access Allow --description AllowICMP --protocol Icmp --direction Outbound --destination-address-prefixes '*' --destination-port-ranges '*' --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowSSHout --nsg-name $site1_vnet_name-gw --priority 1020 --access Allow --description AllowSSH --protocol Tcp --direction Outbound --destination-address-prefixes '*' --destination-port-ranges 22 --source-address-prefixes '*' --source-port-ranges '*' -o none
 az network vnet subnet update -g $rg -n $site1_gw_subnet_name --vnet-name $site1_vnet_name --nsg $site1_vnet_name-gw -o none
 
 # site2 gw nsg
@@ -103,6 +104,7 @@ az network nsg rule create -g $rg -n AllowIPSec --nsg-name $site2_vnet_name-gw -
 az network nsg rule create -g $rg -n AllowICMPin --nsg-name $site2_vnet_name-gw --priority 1030 --access Allow --description AllowICMP --protocol Icmp --direction Inbound --destination-address-prefixes '*' --destination-port-ranges '*' --source-address-prefixes '*' --source-port-ranges '*' -o none
 az network nsg rule create -g $rg -n AllowRDPout --nsg-name $site2_vnet_name-gw --priority 1000 --access Allow --description AllowRDP --protocol Tcp --direction Outbound --destination-address-prefixes '*' --destination-port-ranges 3389 --source-address-prefixes '*' --source-port-ranges '*' -o none
 az network nsg rule create -g $rg -n AllowICMPout --nsg-name $site2_vnet_name-gw --priority 1010 --access Allow --description AllowICMP --protocol Icmp --direction Outbound --destination-address-prefixes '*' --destination-port-ranges '*' --source-address-prefixes '*' --source-port-ranges '*' -o none
+az network nsg rule create -g $rg -n AllowSSHout --nsg-name $site2_vnet_name-gw --priority 1020 --access Allow --description AllowSSH --protocol Tcp --direction Outbound --destination-address-prefixes '*' --destination-port-ranges 22 --source-address-prefixes '*' --source-port-ranges '*' -o none
 az network vnet subnet update -g $rg -n $site2_gw_subnet_name --vnet-name $site2_vnet_name --nsg $site2_vnet_name-gw -o none
 
 ### wf script

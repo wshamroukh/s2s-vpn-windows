@@ -1,4 +1,4 @@
-rg=s2s-vpn-static-windows
+rg=windows-s2s-vpn-static-windows
 location=centralindia
 
 site1_vnet_name=site1

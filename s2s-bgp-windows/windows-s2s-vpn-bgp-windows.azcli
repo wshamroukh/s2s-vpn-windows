@@ -1,4 +1,4 @@
-rg=s2s-vpn-bgp-windows
+rg=windows-s2s-vpn-bgp-windows
 location=centralindia
 
 site1_vnet_name=site1

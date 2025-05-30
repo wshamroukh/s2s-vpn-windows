@@ -1,4 +1,4 @@
-rg=az-s2s-vpn-bgp-windows
+rg=azure-s2s-vpn-bgp-windows
 location=centralindia
 
 hub1_vnet_name=hub1

@@ -121,10 +121,10 @@ Install-RemoteAccess -VpnType VpnS2S
 EOF
 
 # Run wf script on site1-gw
-echo -e "\e[1;36mEnabling ICMP on Windows Firewall for $site1_vnet_name-gw...\e[0m"
+echo -e "\e[1;36mEnabling ICMP on Windows Firewall and installing RAAS for $site1_vnet_name-gw...\e[0m"
 az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_wf_raas_file --query "value[0].message" -o tsv
 # Run wf script on site2-gw
-echo -e "\e[1;36mEnabling ICMP on Windows Firewall for $site2_vnet_name-gw...\e[0m"
+echo -e "\e[1;36mEnabling ICMP on Windows Firewall and installing RAAS for $site2_vnet_name-gw...\e[0m"
 az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_wf_raas_file --query "value[0].message" -o tsv
 
 rm $site_wf_raas_file

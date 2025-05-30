@@ -208,10 +208,11 @@ Get-NetFirewallRule -DisplayName "Virtual Machine Monitoring (Echo Request - ICM
 Get-NetFirewallRule -DisplayName "Virtual Machine Monitoring (Echo Request - ICMPv6-In)" | Enable-NetFirewallRule
 EOF
 
-echo -e "\e[1;36mEnabling ICMP on Windows Firewall for both $site1_vnet_name and $site2_vnet_name VMs...\e[0m"
 # Run wf script on site1-gw
+echo -e "\e[1;36mEnabling ICMP on Windows Firewall for $site1_vnet_name-gw...\e[0m"
 az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_wf_file --query "value[0].message" -o tsv
 # Run wf script on site2-gw
+echo -e "\e[1;36mEnabling ICMP on Windows Firewall for $site2_vnet_name-gw...\e[0m"
 az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_wf_file --query "value[0].message" -o tsv
 
 rm $site_wf_file
@@ -224,10 +225,11 @@ Install-WindowsFeature -Name RemoteAccess, RSAT-RemoteAccess-PowerShell, DirectA
 Install-RemoteAccess -VpnType VpnS2S
 EOF
 
-echo -e "\e[1;36mInstalling RemoteAccess Role for $site1_vnet_name-gw...\e[0m"
 # Run rras script on site1-gw
+echo -e "\e[1;36mInstalling RemoteAccess Role for $site1_vnet_name-gw...\e[0m"
 az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_rras_file --query "value[0].message" -o tsv
 # Run rras script on site2-gw
+echo -e "\e[1;36mInstalling RemoteAccess Role for $site2_vnet_name-gw...\e[0m"
 az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts @$site_rras_file --query "value[0].message" -o tsv
 
 rm  $site_rras_file
@@ -248,7 +250,8 @@ Get-VpnS2SInterface -Name $hub1_vnet_name-gw |fl
 EOF
 
 # Run VPN interface script on site1-gw
-az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts @$site1_vpn_file --verbose
+echo -e "\e[1;36mAdding VPN interface on $site1_vnet_name-gw and connecting S2S VPN to $site2_vnet_name-gw...\e[0m"
+az vm run-command invoke -g $rg -n $site1_vnet_name-gw --command-id RunPowerShellScript --scripts @$site1_vpn_file --query "value[0].message" -o tsv
 
 rm $site1_vpn_file
 
@@ -268,6 +271,7 @@ Get-VpnS2SInterface -Name $hub1_vnet_name-gw |fl
 EOF
 
 # Run VPN interface script on site2-gw
+echo -e "\e[1;36mAdding VPN interface on $site2_vnet_name-gw and connecting S2S VPN to $site1_vnet_name-gw...\e[0m"
 az vm run-command invoke -g $rg -n $site2_vnet_name-gw --command-id RunPowerShellScript --scripts @$site2_vpn_file --query "value[0].message" -o tsv
 
 rm $site2_vpn_file
